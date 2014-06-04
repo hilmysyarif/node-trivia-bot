@@ -10,7 +10,7 @@ var current = 0;
 var currentUsers = [];
 var currentTime = new Date().getTime();
 var currentChannel = config.channels[0];
-var interval;
+var timeout;
 
 loadQuestions();
 
@@ -21,8 +21,8 @@ bot.addListener('message', function(from, to, message){
     //checks for correct answer
     if(message.toLowerCase() === questions[current].split("`")[1].toLowerCase()){
        
-        bot.say(currentChannel, from + " guessed correct!");
-        clearInterval(interval);
+        bot.say(currentChannel, irc.colors.wrap("light_green",from) + " guessed correct!");
+        clearTimeout(timeout);
         newQuestion();
      }
     }
@@ -32,10 +32,8 @@ bot.addListener('message', function(from, to, message){
 
 function newQuestion(){
    current++ ;
-   currentTime = new Date().getTime();
-   clearInterval(interval);
-   interval = setTimeout();
-   bot.say(currentChannel, "The next question is: ");
+   clearTimeout(timeout);
+   timeout = setTimer();
    bot.say(currentChannel, questions[current].split("`")[0]);
    console.log(questions[current].split("`")[1]);
    
@@ -87,11 +85,10 @@ function writeScores(){
     
 }
 
-function setTimeout(){
-    return setInterval(function(){
-            bot.say(currentChannel, "Too slow! The answer was: " + questions[current].split("`")[1]);
-            newQuestion();
-            clearInterval(interval);}, config.timeout * 1000);
+function setTimer(){
+    return setTimeout(function(){
+            bot.say(currentChannel, "Too slow! The answer was: " + irc.colors.wrap("magenta", questions[current].split("`")[1]));
+            newQuestion();}, config.timeout * 1000);
 }
 
 //Function that id's the bots possible commands
@@ -101,23 +98,35 @@ function commands(message, from){
        if("!start" === res[0] && config.active === false){
            config.active = true;
            questions = shuffle(questions);
-           bot.say(currentChannel, "New game started! Get ready...");
-           bot.say(currentChannel, "The first question is: ");
-           setTimeout();
-           bot.say(currentChannel, questions[current].split("`")[0]);
+           bot.say(currentChannel, irc.colors.wrap("light_green","New game started!") + " Get ready...");
+           newQuestion(); 
            currentTime = new Date().getTime();
 
        }else if("!end" === res[0] && config.active === true){
-            bot.say(currentChannel, "Game ended. High scores coming whenever I feel like it.");
-            bot.say(currentChannel, "This game's winner is: ");
+            bot.say(currentChannel, "Game ended. The correct answer was: " 
+                                    + irc.colors.wrap("cyan",questions[current].split("`")[1])
+                                    + ".  High scores coming whenever I feel like it.");
             config.active = false;
+            clearTimeout(timeout);
 
        }else if("!help" === res[0]){
-            bot.say(currentChannel, "Type: !start to start a new game ; !end to end the current game ; !shuffle to shuffle the questions");    
+            bot.say(currentChannel, "Type: " 
+                                  + irc.colors.wrap("cyan", "!start") + " to start a new game ; " 
+                                  + irc.colors.wrap("cyan", "!end") + " to end the current game ; "
+                                  + irc.colors.wrap("cyan", "!shuffle") + " to shuffle the questions ; "
+                                  + irc.colors.wrap("cyan", "!setTimeout") + " to set the time for each question");    
 
        }else if("!shuffle" === res[0]){
             questions = shuffle(questions);
-            bot.say(currentChannel, "Questions shuffled");    
+            bot.say(currentChannel, " Questions shuffled");    
+       }else if("!setTimeout" === res[0]){
+            if(isNaN(parseInt(res[1])) ){
+                bot.say(currentChannel, "Please enter the time in seconds");
+            }
+            else{
+                config.timeout = parseInt(res[1]);
+                bot.say(currentChannel, "Timeout set to: " + irc.colors.wrap("cyan",config.timeout));
+            }
        }
 }
 
