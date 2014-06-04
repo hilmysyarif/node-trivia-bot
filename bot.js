@@ -7,6 +7,7 @@ var bot = new irc.Client(config.server, config.botname,
 
 var questions = [];
 var current = 0;
+var currentUsers = [];
 var currentTime = new Date().getTime();
 var currentChannel = config.channels[0];
 var interval;
@@ -123,4 +124,17 @@ function commands(message, from){
 
 bot.addListener('error', function(error){
     console.log(error);    
+});
+
+bot.addListener('join', function(channel, nick, message){
+    currentUsers.push(nick);
+    console.log(nick);
+});
+bot.addListener('names', function(channel, nicks){
+    nicks = JSON.stringify(nicks);
+    console.log(nicks);
+});
+
+bot.addListener('part', function(channel, nick, message){
+   console.log(nick); 
 });
