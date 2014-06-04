@@ -1,6 +1,6 @@
 var config = {
     channels: ["#totallynottest"],
-    server : "dreamhack.se.quakenet.org",
+    server : "irc.cc.tut.fi",
     botname : "shittytriviabot" ,
     timeout : 30,
     active : false,
