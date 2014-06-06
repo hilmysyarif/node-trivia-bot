@@ -11,6 +11,7 @@ var currentUsers = [];
 var currentTime = new Date().getTime();
 var currentChannel = config.channels[0];
 var timeout;
+var activeTime;
 
 loadQuestions();
 
@@ -18,6 +19,8 @@ loadQuestions();
 bot.addListener('message', function(from, to, message){
    //Check if game has been activated
    if(questions[current] !== undefined  && config.active === true){
+    clearTimeout(activeTime);
+    activeTime = activeTimer();
     //checks for correct answer
     if(message.toLowerCase() === questions[current].split("`")[1].toLowerCase()){
        
@@ -91,6 +94,23 @@ function setTimer(){
             newQuestion();}, config.timeout * 1000);
 }
 
+function endGame(extra){
+    extra = extra == undefined ? "" : extra;
+    bot.say(currentChannel, extra  
+                            + "Game ended. The correct answer was: " 
+                            + irc.colors.wrap("cyan",questions[current].split("`")[1])
+                            + ".  High scores coming whenever I feel like it.");
+    config.active = false;
+    clearTimeout(timeout);
+    clearTimeout(activeTime);
+}
+
+function activeTimer(){
+    return setTimeout(function(){
+        endGame("No one playing? ");
+        }, config.afk * 1000);    
+}
+
 //Function that id's the bots possible commands
 function commands(message, from){
        var res = message.split(" ");
@@ -101,14 +121,10 @@ function commands(message, from){
            bot.say(currentChannel, irc.colors.wrap("light_green","New game started!") + " Get ready...");
            newQuestion(); 
            currentTime = new Date().getTime();
+           activeTime = activeTimer();
 
        }else if("!end" === res[0] && config.active === true){
-            bot.say(currentChannel, "Game ended. The correct answer was: " 
-                                    + irc.colors.wrap("cyan",questions[current].split("`")[1])
-                                    + ".  High scores coming whenever I feel like it.");
-            config.active = false;
-            clearTimeout(timeout);
-
+           endGame();
        }else if("!help" === res[0]){
             bot.say(currentChannel, "Type: " 
                                   + irc.colors.wrap("cyan", "!start") + " to start a new game ; " 

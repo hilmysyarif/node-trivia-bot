@@ -4,7 +4,8 @@ var config = {
     botname : "shittytriviabot" ,
     timeout : 10,
     active : false,
-    questions: "/questions/"
+    questions: "/questions/",
+    afk: 30
 };
 
 module.exports = config;
