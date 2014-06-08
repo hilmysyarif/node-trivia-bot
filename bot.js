@@ -108,7 +108,7 @@ function endGame(extra){
 function activeTimer(){
     return setTimeout(function(){
         endGame("No one playing? ");
-        }, config.afk * 1000);    
+        }, config.afk * 60000);    
 }
 
 //Function that id's the bots possible commands
@@ -142,6 +142,14 @@ function commands(message, from){
             else{
                 config.timeout = parseInt(res[1]);
                 bot.say(currentChannel, "Timeout set to: " + irc.colors.wrap("cyan",config.timeout));
+            }
+       }else if("!setAFK" === res[0]){
+            if(isNaN(parseInt(res[1]){
+                bot.say(currentChannel, "Please enter time in minutes");    
+            }    
+            else{
+                congig.afk = parseInt(res[1]);
+                bot.say(currentChannel, "AFK time set to: " irc.colors.wrap("cyan", config.afk));
             }
        }
 }
