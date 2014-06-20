@@ -1,173 +1,176 @@
+'use strict'
+
 var irc = require('irc'),
-    config = require("./config"),
+    config = require('./config'),
     fs = require('fs');
 
-var bot = new irc.Client(config.server, config.botname, 
-                        {channels : config.channels});
+var bot = new irc.Client(config.server, config.botname,
+                         {channels: config.channels});
 
-var questions = [];
-var current = 0;
-var currentUsers = [];
-var currentTime = new Date().getTime();
-var currentChannel = config.channels[0];
-var timeout;
-var activeTime;
+var channels = [];
+var questions = loadQuestions();
 
-loadQuestions();
-
-
-bot.addListener('message', function(from, to, message){
-   //Check if game has been activated
-   if(questions[current] !== undefined  && config.active === true){
-    clearTimeout(activeTime);
-    activeTime = activeTimer();
-    //checks for correct answer
-    if(message.toLowerCase() === questions[current].split("`")[1].toLowerCase()){
-       
-        bot.say(currentChannel, irc.colors.wrap("light_green",from) + " guessed correct!");
-        clearTimeout(timeout);
-        newQuestion();
-     }
-    }
-    //look for commands
-    commands(message, from);
-});
-
-function newQuestion(){
-   current++ ;
-   clearTimeout(timeout);
-   timeout = setTimer();
-   bot.say(currentChannel, questions[current].split("`")[0]);
-   console.log(questions[current].split("`")[1]);
-   
-   //checks for end of questions
-   if(questions[current] === undefined){
-    bot.say(currentChannel, "You have somehow answered all 50k questions! Now go outside and get a life");    
-    config.active = false;
-   } 
-}
-
-function shuffle(o){ //v1.0
-    for(var j, x, i = o.length; i; j = Math.floor(Math.random() * i), x = o[--i], o[i] = o[j], o[j] = x);
-    return o;
-};
-
-function loadQuestions(){
-    console.log("Loading questions...");
-    fs.readdir(__dirname + config.questions,  function(err, files){
-        if (err) throw err;
-
-        var c = files.length;
-        var quesData = {};
-
-
-        files.forEach(function(file){
-            fs.readFile(__dirname + config.questions + file, 'utf8', function(err, data){
-                if(err) throw err;
-                quesData[file] = data;
-                c--;
-                if(c <= 0){
-                    console.log("Questions loaded");
-                    questions = parseQuestions(quesData);
-                }
-            });   
-        });
-    }); 
-
-}
-
-function parseQuestions(data){
-    var result = '';
-    for(i in data){
-        result += data[i];
-    }
-    return result.split('\n');
-}
-
-function writeScores(){
-    
-}
-
-function setTimer(){
-    return setTimeout(function(){
-            bot.say(currentChannel, "Too slow! The answer was: " + irc.colors.wrap("magenta", questions[current].split("`")[1]));
-            newQuestion();}, config.timeout * 1000);
-}
-
-function endGame(extra){
-    extra = extra == undefined ? "" : extra;
-    bot.say(currentChannel, extra  
-                            + "Game ended. The correct answer was: " 
-                            + irc.colors.wrap("cyan",questions[current].split("`")[1])
-                            + ".  High scores coming whenever I feel like it.");
-    config.active = false;
-    clearTimeout(timeout);
-    clearTimeout(activeTime);
-}
-
-function activeTimer(){
-    return setTimeout(function(){
-        endGame("No one playing? ");
-        }, config.afk * 60000);    
-}
-
-//Function that id's the bots possible commands
-function commands(message, from){
-       var res = message.split(" ");
-
-       if("!start" === res[0] && config.active === false){
-           config.active = true;
-           questions = shuffle(questions);
-           bot.say(currentChannel, irc.colors.wrap("light_green","New game started!") + " Get ready...");
-           newQuestion(); 
-           currentTime = new Date().getTime();
-           activeTime = activeTimer();
-
-       }else if("!end" === res[0] && config.active === true){
-           endGame();
-       }else if("!help" === res[0]){
-            bot.say(currentChannel, "Type: " 
-                                  + irc.colors.wrap("cyan", "!start") + " to start a new game ; " 
-                                  + irc.colors.wrap("cyan", "!end") + " to end the current game ; "
-                                  + irc.colors.wrap("cyan", "!shuffle") + " to shuffle the questions ; "
-                                  + irc.colors.wrap("cyan", "!setTimeout") + " to set the time for each question");    
-
-       }else if("!shuffle" === res[0]){
-            questions = shuffle(questions);
-            bot.say(currentChannel, " Questions shuffled");    
-       }else if("!setTimeout" === res[0]){
-            if(isNaN(parseInt(res[1])) ){
-                bot.say(currentChannel, "Please enter the time in seconds");
-            }
-            else{
-                config.timeout = parseInt(res[1]);
-                bot.say(currentChannel, "Timeout set to: " + irc.colors.wrap("cyan",config.timeout));
-            }
-       }else if("!setAFK" === res[0]){
-            if(isNaN(parseInt(res[1]){
-                bot.say(currentChannel, "Please enter time in minutes");    
-            }    
-            else{
-                congig.afk = parseInt(res[1]);
-                bot.say(currentChannel, "AFK time set to: " irc.colors.wrap("cyan", config.afk));
-            }
-       }
-}
-
-
-bot.addListener('error', function(error){
-    console.log(error);    
+//Start of event listeners
+bot.addListener('error', function(err){
+    console.log(err);
 });
 
 bot.addListener('join', function(channel, nick, message){
-    currentUsers.push(nick);
-    console.log(nick);
+    console.log(channel + " " + nick);
 });
-bot.addListener('names', function(channel, nicks){
-    nicks = JSON.stringify(nicks);
-    console.log(nicks);
+
+bot.addListener('message', function(from, to, message){
+    console.log(from + " " + to + " " + message);
+    commandCheck(channelCheck(to),parseMessage(message));
 });
 
 bot.addListener('part', function(channel, nick, message){
-   console.log(nick); 
+    console.log(channel + " " + nick);    
 });
+
+bot.addListener('names', function(channel, nicks){
+    //add channel users to list
+    var users = [];
+    for(var nick in nicks){
+        users.push(nick);
+    }
+    channels.push(new NewChannel(channel, users));
+});
+//End of event listeners
+
+function commandCheck(channel, message){
+    for(var command in channel.commands){
+        if(command == message[0]){
+            console.log(message[0] + " " + message[1]);
+            channel.run(message[0], message[1]);
+        }
+    }
+}
+
+function channelCheck(channel){
+    for(var i = 0; i < channels.length; i++){
+       console.log(channels[i].channel);
+       if(channel === channels[i].channel){
+           return channels[i];
+       }
+    }
+    throw new Error('Channel not found');
+}
+
+function parseMessage(message){
+    var components = message.split(" ");
+    return components;
+}
+
+
+// Game handling
+function NewChannel(channel, nicks){
+    this.channel = channel;
+    this.current = 0;
+    this.countDown = null;
+    this.activeTimer = null;
+    this.active = false;
+    this.afk = 3;
+    this.timeout = 45;
+    this.nicks = nicks;
+    this.commands = {"!help":this.help, "!start":this.start, "!end":this.endGame, "!setTimeout":this.setTime, "!setAFK":this.setAFK, "!scores":null};
+}
+
+NewChannel.prototype.newQuestion = function(){
+    this.current++;
+    //set question answertimer
+    clearTimeout(this.countDown);
+    this.setTimer();
+    //check if out of questions
+    if(this.getQuestion() === undefined){
+        bot.say(this.channel, "You have somehow answered all 76000 questions. GJ I guess... Now go outside.");
+        this.active = false;
+    }
+    else
+        bot.say(this.channel, this.getQuestion());
+}
+
+NewChannel.prototype.help = function(){
+    bot.say(this.channel, "Type: "
+            + irc.colors.wrap("cyan", "!start") + " to start a new game ; "
+            + irc.colors.wrap("cyan", "!end") + " to end the current game ; "
+            + irc.colors.wrap("cyan", "!shuffle") + " to shuffle the questions ; "
+            + irc.colors.wrap("cyan", "!setTimeout") + " to set the time for each question ; "
+            + irc.colors.wrap("cyan", "!setAFK") + " to set afk timeout");
+}
+
+NewChannel.prototype.run = function(command, param){
+    this.commands[command](param);
+}
+
+NewChannel.prototype.start = function(){
+    this.active = true;
+    questions = shuffle(questions);
+    this.setActiveTimer();
+    bot.say(this.channel, irc.colors.wrap("light_green","New game started!") + " Get ready...");
+    this.newQuestion();
+}
+
+NewChannel.prototype.endGame = function(extra){
+    //Check for additional text before game end message
+    extra = (extra == undefined) ? "" : extra;
+    this.active = false;
+    clearTimeout(this.countDown);
+    clearTimeout(this.activeTimer);
+    bot.say(this.channel, extra
+            + "Game ended. The correct answer was: "
+            + irc.colors.wrap("cyan", this.getAnswer())
+            + ".  High scores coming whenever I feel like it.");
+}
+
+NewChannel.prototype.setTime = function(time){
+    this.timeout = time;
+    //Time in seconds
+    bot.say(this.channel, "Timeout set to: " 
+            + irc.colors.wrap("light_green", this.timeout)); 
+}
+
+NewChannel.prototype.setAFK = function(time){
+    this.afk = time;
+    //Time in minutes
+    bot.say(this.channel, "AFK timer set to: "
+            + irc.colors.wrap("light_green", this.afk));
+}
+
+NewChannel.prototype.setTimer = function(){
+    this.countDown = setTimeout(function(){
+        bot.say(this.channel, "The answer was: "
+                + irc.colors.wrap("magenta", getAnswer(questions, this.current)));
+        this.newQuestion();
+    }, this.timeout * 1000);
+}
+
+NewChannel.prototype.setActiveTimer = function(){
+    this.activeTimer = setTimeout(function(){
+        this.endGame("No one playing? ");
+    }, this.afk * 60 * 1000);
+}
+
+NewChannel.prototype.getAnswer = function(){
+    return questions[this.current].split("`")[1];
+}
+
+NewChannel.prototype.getQuestion = function(){
+    return questions[this.current].split("`")[0];
+}
+
+function shuffle(o){
+   for(var j, x, i = o.length; i; j = Math.floor(Math.random() * i), x = o[--i], o[i] = o[j], o[j] = x);
+   return o;  
+}
+
+function loadQuestions(){
+   console.log("Loading new question set....");
+   fs.readFile(__dirname + config.questions, 'utf8', function(err, data){
+      if(err)
+          throw err;
+
+      console.log("Questions loaded");
+      questions = shuffle(data.split('\n'));
+   });
+}
