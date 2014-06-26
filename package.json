@@ -11,13 +11,13 @@
    },
    "repository": {
      "type": "git",
-     "url": "https://github.com/shokmugbor/node-irc-bot"
+     "url": "https://github.com/Kuthdeng/node-irc-bot"
    },
    "keywords":[],
    "author": "Richard Marbach",
    "license": "BSD",
    "bugs": {
-       "url": "https://github.com/shokmugbor/node-irc-bot/issues"
+       "url": "https://github.com/Kuthdeng/node-irc-bot/issues"
    },
-   "homepage": "https://github.com/shokmugbor/node-irc-bot"
+   "homepage": "https://github.com/Kuthdeng/node-irc-bot"
 }
