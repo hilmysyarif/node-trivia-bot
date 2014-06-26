@@ -10,7 +10,6 @@ var bot = new irc.Client(config.server, config.botname,
 var channels = [];
 var questions = loadQuestions();
 
-//  Start of event listeners
 bot.addListener('error', function(err){
     console.log(err);
 });
@@ -29,14 +28,12 @@ bot.addListener('part', function(channel, nick, message){
 
 //  Names seems to only get run when the bot joins a new channel
 bot.addListener('names', function(channel, nicks){
-    //add channel users to list
     var users = [];
     for(var nick in nicks){
         users.push(nick);
     }
     channels.push(new NewChannel(channel, users));
 });
-//  End of event listeners
 
 function commandCheck(channel, message){
     for(var command in channel.commands){
@@ -56,14 +53,13 @@ function channelCheck(channel){
     throw new Error('Channel not found');
 }
 
-//  Parses the irc channel messages
+//  For irc messages
 function parseMessage(message){
     var components = message.split(" ");
     return components;
 }
 
 
-// Game handling
 function NewChannel(channel, nicks){
     this.channel = channel;
     this.current = 0;
@@ -92,19 +88,21 @@ NewChannel.prototype =
         questions = shuffle(questions);
         this.activeTimer = this.setActiveTimer();
         bot.say(this.channel, irc.colors.wrap("light_green","New game started!") + " Get ready...");
-        this.newQuestion();
+        this.newQuestion.call(this);
+        console.log(this);
     },
 
     endGame: function(extra){
-        //check if game is active
         if (this.active == false)
             return ;
+
         //Check for additional text before game end message
         extra = (extra == undefined) ? "" : extra;
+
         this.active = false;
-        console.log(this.countDown);
         clearTimeout(this.countDown);
         clearTimeout(this.activeTimer);
+        console.log(this);
         bot.say(this.channel, extra
                 + "Game ended. The correct answer was: "
                 + irc.colors.wrap("cyan", this.getAnswer())
@@ -115,30 +113,30 @@ NewChannel.prototype =
         this.current++;
         //  Set question answer timer
         clearTimeout(this.countDown);
-        this.setTimer();
+        this.countDown = this.setTimer();
         //  Check if out of questions
         if(this.getQuestion() === undefined){
             this.current = 0;
         }
         else
             bot.say(this.channel, this.getQuestion());
+        console.log(this.getAnswer());
     },
     
     setTime: function(time){
         this.timeout = time;
-        //Time in seconds
         bot.say(this.channel, "Timeout set to: " 
                 + irc.colors.wrap("light_green", this.timeout)); 
     },
 
     setAFK: function(time){
         this.afk = time;
-        //Time in minutes
         bot.say(this.channel, "AFK timer set to: "
                 + irc.colors.wrap("light_green", this.afk));
     },
 
     setTimer: function(){
+        //  Time in seconds
         return setTimeout(function(){
             bot.say(this.channel, "The answer was: "
                     + irc.colors.wrap("magenta", this.getAnswer(questions, this.current)));
@@ -147,6 +145,7 @@ NewChannel.prototype =
     },
 
     setActiveTimer: function(){
+        //  Time in minutes
         return setTimeout(function(){
             this.endGame("No one playing? ");
             console.log("afk end");

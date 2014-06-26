@@ -1,5 +1,5 @@
 var config = {
-    channels: ["#totallynottest"],
+    channels: ["#totallynottest", "#totallyatest"],
     server : "dreamhack.se.quakenet.org", //irc.cc.tut.fi
     botname : "badTriviaBot" ,
     questions: "/questions/questions"
