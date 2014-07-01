@@ -8,6 +8,9 @@ var bot = new irc.Client(config.server, config.botname,
                          {channels: config.channels});
 
 var channels = [];
+// I originally didn't want to make the questions global
+// but decided storing 76k+ lines in seperate objects sounded
+// like a bad idea.
 var questions = loadQuestions();
 
 bot.addListener('error', function(err){
@@ -19,7 +22,14 @@ bot.addListener('join', function(channel, nick, message){
 });
 
 bot.addListener('message', function(from, to, message){
-    commandCheck(channelCheck(to),parseMessage(message));
+    var curChannelObj = currentChannel(to);
+    commandCheck(curChannelObj,parseMessage(message));
+
+    if(curChannelObj.active == true){
+        curChannelObj.checkAnswer.call(curChannelObj, message, from);   
+    }
+
+    curChannelObj.resetAFK.call(curChannelObj);
 });
 
 bot.addListener('part', function(channel, nick, message){
@@ -43,9 +53,8 @@ function commandCheck(channel, message){
     }
 }
 
-function channelCheck(channel){
+function currentChannel(channel){
     for(var i = 0; i < channels.length; i++){
-       console.log(channels[i].channel);
        if(channel === channels[i].channel){
            return channels[i];
        }
@@ -89,7 +98,6 @@ NewChannel.prototype =
         this.activeTimer = this.setActiveTimer();
         bot.say(this.channel, irc.colors.wrap("light_green","New game started!") + " Get ready...");
         this.newQuestion.call(this);
-        console.log(this);
     },
 
     endGame: function(extra){
@@ -102,7 +110,6 @@ NewChannel.prototype =
         this.active = false;
         clearTimeout(this.countDown);
         clearTimeout(this.activeTimer);
-        console.log(this);
         bot.say(this.channel, extra
                 + "Game ended. The correct answer was: "
                 + irc.colors.wrap("cyan", this.getAnswer())
@@ -124,15 +131,23 @@ NewChannel.prototype =
     },
     
     setTime: function(time){
-        this.timeout = time;
-        bot.say(this.channel, "Timeout set to: " 
+        if(typeof parseInt(time) !== "number" || time == undefined)
+          bot.say(this.channel, "Please enter a number");
+        else{
+          this.timeout = time;
+          bot.say(this.channel, "Timeout set to: " 
                 + irc.colors.wrap("light_green", this.timeout)); 
+        }
     },
 
     setAFK: function(time){
-        this.afk = time;
-        bot.say(this.channel, "AFK timer set to: "
-                + irc.colors.wrap("light_green", this.afk));
+        if(typeof parseInt(time) !== "number" || time == undefined)
+          bot.say(this.channel, "Please enter a number");
+        else{
+          this.afk = time;
+          bot.say(this.channel, "AFK timer set to: "
+                  + irc.colors.wrap("light_green", this.afk));
+        }
     },
 
     setTimer: function(){
@@ -158,8 +173,29 @@ NewChannel.prototype =
 
     getQuestion: function(){
         return questions[this.current].split("`")[0];
+    },
+
+    checkAnswer: function(message, user){
+        if(message.toLowerCase() == this.getAnswer.call(this)){
+            bot.say(this.channel, irc.colors.wrap("light_green", user)
+                                 + " got it right!");
+            this.newQuestion.call(this);
+        }
+    },
+
+    resetAFK: function(){
+      if(this.active){
+        clearTimeout(this.activeTimer);
+        this.activeTimer = this.setActiveTimer();
+      }
     }
 
+}
+
+function checkType(input, type){
+  if(typeof input !== type)
+    return false;
+  return true;
 }
 
 function shuffle(o){
