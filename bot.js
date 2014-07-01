@@ -78,25 +78,29 @@ function NewChannel(channel, nicks){
     this.afk = 1;
     this.timeout = 45; 
     this.nicks = nicks;
-    this.commands = {"!help":this.help, "!start":this.start, "!end":this.endGame, "!setTimeout":this.setTime, "!setAFK":this.setAFK, "!scores":null};
+    this.commands = {"!help":this.help, "!start":this.start, "!end":this.endGame, 
+                     "!setTimeout":this.setTime, "!setAFK":this.setAFK, "!scores":null,
+                     "!showAFK":this.showAFK, "!showTime":this.showTime};
 }
 
 NewChannel.prototype = 
 {
     help: function(){
         bot.say(this.channel, "Type: "
-                + irc.colors.wrap("cyan", "!start") + " to start a new game ; "
-                + irc.colors.wrap("cyan", "!end") + " to end the current game ; "
-                + irc.colors.wrap("cyan", "!shuffle") + " to shuffle the questions ; "
-                + irc.colors.wrap("cyan", "!setTimeout") + " to set the time for each question ; "
-                + irc.colors.wrap("cyan", "!setAFK") + " to set afk timeout");
+                + colorText("cyan", "!start") + " to start a new game ; "
+                + colorText("cyan", "!end") + " to end the current game ; "
+                + colorText("cyan", "!shuffle") + " to shuffle the questions ; "
+                + colorText("cyan", "!setTimeout") + " to set the time for each question ; "
+                + colorText("cyan", "!setAFK") + " to set afk timeout ; "
+                + colorText("cyan", "!showTime") + " to show time per question ; "
+                + colorText("cyan", "!showAFK") + " to show afk timeout");
     },
 
     start: function(){
         this.active = true;
         questions = shuffle(questions);
         this.activeTimer = this.setActiveTimer();
-        bot.say(this.channel, irc.colors.wrap("light_green","New game started!") + " Get ready...");
+        bot.say(this.channel, colorText("light_green","New game started!") + " Get ready...");
         this.newQuestion.call(this);
     },
 
@@ -112,7 +116,7 @@ NewChannel.prototype =
         clearTimeout(this.activeTimer);
         bot.say(this.channel, extra
                 + "Game ended. The correct answer was: "
-                + irc.colors.wrap("cyan", this.getAnswer())
+                + colorText("cyan", this.getAnswer())
                 + ".  High scores coming whenever I feel like it.");
     },
 
@@ -129,24 +133,36 @@ NewChannel.prototype =
             bot.say(this.channel, this.getQuestion());
         console.log(this.getAnswer());
     },
+
+    showTime: function(){
+      bot.say(this.channel, "The current time per question is: " 
+                          + colorText("cyan", this.timeout)
+                          + "sec");
+    },
+
+    showAFK: function(){
+      bot.say(this.channel, "The current afk timeout is: "
+                          + colorText("cyan", this.afk)
+                          + "min");
+    },
     
     setTime: function(time){
-        if(typeof parseInt(time) !== "number" || time == undefined)
+        if(notNumber(time))
           bot.say(this.channel, "Please enter a number");
         else{
           this.timeout = time;
           bot.say(this.channel, "Timeout set to: " 
-                + irc.colors.wrap("light_green", this.timeout)); 
+                + colorText("light_green", this.timeout)); 
         }
     },
 
     setAFK: function(time){
-        if(typeof parseInt(time) !== "number" || time == undefined)
+        if(notNumber(time))
           bot.say(this.channel, "Please enter a number");
         else{
           this.afk = time;
           bot.say(this.channel, "AFK timer set to: "
-                  + irc.colors.wrap("light_green", this.afk));
+                  + colorText("light_green", this.afk));
         }
     },
 
@@ -154,7 +170,7 @@ NewChannel.prototype =
         //  Time in seconds
         return setTimeout(function(){
             bot.say(this.channel, "The answer was: "
-                    + irc.colors.wrap("magenta", this.getAnswer(questions, this.current)));
+                    + colorText("magenta", this.getAnswer(questions, this.current)));
             this.newQuestion();
         }.bind(this), this.timeout * 1000);
     },
@@ -177,7 +193,7 @@ NewChannel.prototype =
 
     checkAnswer: function(message, user){
         if(message.toLowerCase() == this.getAnswer.call(this)){
-            bot.say(this.channel, irc.colors.wrap("light_green", user)
+            bot.say(this.channel, colorText("light_green", user)
                                  + " got it right!");
             this.newQuestion.call(this);
         }
@@ -192,8 +208,12 @@ NewChannel.prototype =
 
 }
 
-function checkType(input, type){
-  if(typeof input !== type)
+function colorText(color, text){
+  return irc.colors.wrap(color, text);
+}
+
+function notNumber(input){
+  if(typeof parseInt(input) !== 'number' || input == undefined)
     return false;
   return true;
 }
