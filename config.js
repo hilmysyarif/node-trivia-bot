@@ -1,6 +1,6 @@
 var config = {
-    channels: [""],
-    server : "",
+    channels: ["#totallynottest"],
+    server : "dreamhack.se.quakenet.org",
     botname : "badTriviaBot" ,
     questions: "/questions/questions"
 };

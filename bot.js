@@ -147,7 +147,7 @@ NewChannel.prototype =
     },
     
     setTime: function(time){
-        if(isNumber(time))
+        if(!isNumber(time))
           bot.say(this.channel, "Please enter a number");
         else{
           this.timeout = time;
@@ -157,7 +157,7 @@ NewChannel.prototype =
     },
 
     setAFK: function(time){
-        if(isNumber(time))
+        if(!isNumber(time))
           bot.say(this.channel, "Please enter a number");
         else{
           this.afk = time;
