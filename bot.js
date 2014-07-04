@@ -23,13 +23,15 @@ bot.addListener('join', function(channel, nick, message){
 
 bot.addListener('message', function(from, to, message){
     var curChannelObj = currentChannel(to);
-    commandCheck(curChannelObj,parseMessage(message));
+    if(curChannelObj !== undefined){
+      commandCheck(curChannelObj,parseMessage(message));
 
-    if(curChannelObj.active == true){
-        curChannelObj.checkAnswer.call(curChannelObj, message, from);   
+      if(curChannelObj.active == true){
+          curChannelObj.checkAnswer.call(curChannelObj, message, from);   
+      }
+
+      curChannelObj.resetAFK.call(curChannelObj);
     }
-
-    curChannelObj.resetAFK.call(curChannelObj);
 });
 
 bot.addListener('part', function(channel, nick, message){
@@ -38,6 +40,7 @@ bot.addListener('part', function(channel, nick, message){
 
 //  Names seems to only get run when the bot joins a new channel
 bot.addListener('names', function(channel, nicks){
+    console.log(channel, nicks);
     var users = [];
     for(var nick in nicks){
         users.push(nick);
@@ -54,12 +57,17 @@ function commandCheck(channel, message){
 }
 
 function currentChannel(channel){
+  try{
     for(var i = 0; i < channels.length; i++){
        if(channel === channels[i].channel){
            return channels[i];
        }
     }
-    throw new Error('Channel not found');
+  } 
+  // Someone pm'd the bot, die quietly
+  catch(e){
+    console.log(e);
+  }
 }
 
 //  For irc messages
