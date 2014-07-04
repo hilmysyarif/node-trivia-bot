@@ -147,7 +147,7 @@ NewChannel.prototype =
     },
     
     setTime: function(time){
-        if(notNumber(time))
+        if(isNumber(time))
           bot.say(this.channel, "Please enter a number");
         else{
           this.timeout = time;
@@ -157,7 +157,7 @@ NewChannel.prototype =
     },
 
     setAFK: function(time){
-        if(notNumber(time))
+        if(isNumber(time))
           bot.say(this.channel, "Please enter a number");
         else{
           this.afk = time;
@@ -212,10 +212,10 @@ function colorText(color, text){
   return irc.colors.wrap(color, text);
 }
 
-function notNumber(input){
-  if(typeof parseInt(input) !== 'number' || input == undefined)
-    return false;
-  return true;
+function isNumber(input){
+  if(typeof parseInt(input) === 'number' && input !== undefined)
+    return true;
+  return false;
 }
 
 function shuffle(o){
