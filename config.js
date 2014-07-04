@@ -1,7 +1,7 @@
 var config = {
-    channels: ["#yourchannelhere"],
-    server : "yourserverhere",
-    botname : "bot name here" ,
+    channels: [""],
+    server : "",
+    botname : "badTriviaBot" ,
     questions: "/questions/questions"
 };
 
